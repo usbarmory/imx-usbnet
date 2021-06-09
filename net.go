@@ -37,7 +37,7 @@ import (
 )
 
 // MTU represents the Ethernet Maximum Transmission Unit
-var MTU = 1500
+var MTU uint32 = 1500
 
 // Interface represents an Ethernet over USB interface instance.
 type Interface struct {
@@ -52,8 +52,8 @@ type Interface struct {
 	device *usb.Device
 }
 
-func (n *Interface) configure(deviceMAC string) (err error) {
-	n.stack = stack.New(stack.Options{
+func (iface *Interface) configure(deviceMAC string) (err error) {
+	iface.stack = stack.New(stack.Options{
 		NetworkProtocols: []stack.NetworkProtocolFactory{
 			ipv4.NewProtocol,
 			arp.NewProtocol},
@@ -68,14 +68,14 @@ func (n *Interface) configure(deviceMAC string) (err error) {
 		return
 	}
 
-	n.link = channel.New(256, MTU, linkAddr)
-	linkEP := stack.LinkEndpoint(n.link)
+	iface.link = channel.New(256, MTU, linkAddr)
+	linkEP := stack.LinkEndpoint(iface.link)
 
-	if err := n.stack.CreateNIC(n.nicid, linkEP); err != nil {
+	if err := iface.stack.CreateNIC(iface.nicid, linkEP); err != nil {
 		return fmt.Errorf("%v", err)
 	}
 
-	if err := n.stack.AddAddress(n.nicid, ipv4.ProtocolNumber, n.addr); err != nil {
+	if err := iface.stack.AddAddress(iface.nicid, ipv4.ProtocolNumber, iface.addr); err != nil {
 		return fmt.Errorf("%v", err)
 	}
 
@@ -85,9 +85,9 @@ func (n *Interface) configure(deviceMAC string) (err error) {
 		return err
 	}
 
-	n.stack.SetRouteTable([]tcpip.Route{{
+	iface.stack.SetRouteTable([]tcpip.Route{{
 		Destination: subnet,
-		nic:         n.nicid,
+		NIC:         iface.nicid,
 	}})
 
 	return
@@ -95,16 +95,16 @@ func (n *Interface) configure(deviceMAC string) (err error) {
 
 // EnableICMP adds an ICMP endpoint to the interface, it is useful to enable
 // ping requests.
-func (n *Interface) EnableICMP() error {
+func (iface *Interface) EnableICMP() error {
 	var wq waiter.Queue
 
-	ep, err := n.stack.NewEndpoint(icmp.ProtocolNumber4, ipv4.ProtocolNumber, &wq)
+	ep, err := iface.stack.NewEndpoint(icmp.ProtocolNumber4, ipv4.ProtocolNumber, &wq)
 
 	if err != nil {
 		return fmt.Errorf("endpoint error (icmp): %v", err)
 	}
 
-	fullAddr := tcpip.FullAddress{Addr: n.addr, Port: 0, NIC: n.nicid}
+	fullAddr := tcpip.FullAddress{Addr: iface.addr, Port: 0, NIC: iface.nicid}
 
 	if err := ep.Bind(fullAddr); err != nil {
 		return fmt.Errorf("bind error (icmp endpoint): ", err)
@@ -114,16 +114,16 @@ func (n *Interface) EnableICMP() error {
 }
 
 // Device returns the USB device associated to the Ethernet instance.
-func (n *Network) Device() *usb.Device {
-	return n.device
+func (iface *Interface) Device() *usb.Device {
+	return iface.device
 }
 
 // ListenerTCP4 returns a net.Listener capable of accepting connections for the
 // argument port on the Ethernet over USB device.
-func (n *Network) ListenerTCP4(port uint16) (net.Listener, error) {
-	fullAddr := tcpip.FullAddress{Addr: n.addr, Port: port, NIC: n.nicid}
+func (iface *Interface) ListenerTCP4(port uint16) (net.Listener, error) {
+	fullAddr := tcpip.FullAddress{Addr: iface.addr, Port: port, NIC: iface.nicid}
 
-	listener, err := gonet.ListenTCP(n.stack, fullAddr, ipv4.ProtocolNumber)
+	listener, err := gonet.ListenTCP(iface.stack, fullAddr, ipv4.ProtocolNumber)
 
 	if err != nil {
 		return nil, err
@@ -151,20 +151,20 @@ func Init(deviceIP string, deviceMAC, hostMAC string, id int) (n *Interface, err
 		addr:  tcpip.Address(net.ParseIP(deviceIP)).To4(),
 	}
 
-	if err = n.configure(deviceMAC); err != nil {
+	if err = iface.configure(deviceMAC); err != nil {
 		return
 	}
 
-	n.device = &usb.Device{}
-	configureDevice(n.device)
+	iface.device = &usb.Device{}
+	configureDevice(iface.device)
 
-	n.nic = &NIC{
+	iface.nic = &NIC{
 		Host:   hostAddress,
 		Device: deviceAddress,
-		Link:   n.link,
+		Link:   iface.link,
 	}
 
-	err = n.nic.Init(n.device, 0)
+	err = iface.nic.Init(iface.device, 0)
 
 	return
 }
