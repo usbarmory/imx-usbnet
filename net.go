@@ -133,7 +133,7 @@ func (iface *Interface) ListenerTCP4(port uint16) (net.Listener, error) {
 }
 
 // Init initializes an Ethernet over USB device.
-func Init(deviceIP string, deviceMAC, hostMAC string, id int) (n *Interface, err error) {
+func Init(deviceIP string, deviceMAC, hostMAC string, id int) (iface *Interface, err error) {
 	hostAddress, err := net.ParseMAC(hostMAC)
 
 	if err != nil {
@@ -146,7 +146,7 @@ func Init(deviceIP string, deviceMAC, hostMAC string, id int) (n *Interface, err
 		return
 	}
 
-	n = &Network{
+	iface = &Interface{
 		nicid: tcpip.NICID(id),
 		addr:  tcpip.Address(net.ParseIP(deviceIP)).To4(),
 	}
