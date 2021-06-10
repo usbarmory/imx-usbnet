@@ -132,8 +132,9 @@ func (iface *Interface) ListenerTCP4(port uint16) (net.Listener, error) {
 	return (net.Listener)(listener), nil
 }
 
-// Init initializes an Ethernet over USB device.
-func Init(deviceIP string, deviceMAC, hostMAC string, id int) (iface *Interface, err error) {
+// Add adds an Ethernet over USB configuration to a previously configured USB
+// device, it can be used in place of Init() to create composite USB devices.
+func Add(device *usb.Device, deviceIP string, deviceMAC, hostMAC string, id int) (iface *Interface, err error) {
 	hostAddress, err := net.ParseMAC(hostMAC)
 
 	if err != nil {
@@ -147,16 +148,14 @@ func Init(deviceIP string, deviceMAC, hostMAC string, id int) (iface *Interface,
 	}
 
 	iface = &Interface{
-		nicid: tcpip.NICID(id),
-		addr:  tcpip.Address(net.ParseIP(deviceIP)).To4(),
+		nicid:  tcpip.NICID(id),
+		addr:   tcpip.Address(net.ParseIP(deviceIP)).To4(),
+		device: device,
 	}
 
 	if err = iface.configure(deviceMAC); err != nil {
 		return
 	}
-
-	iface.device = &usb.Device{}
-	configureDevice(iface.device)
 
 	iface.nic = &NIC{
 		Host:   hostAddress,
@@ -167,4 +166,13 @@ func Init(deviceIP string, deviceMAC, hostMAC string, id int) (iface *Interface,
 	err = iface.nic.Init(iface.device, 0)
 
 	return
+}
+
+// Init initializes an Ethernet over USB device, configured with the defaults
+// as set by ConfigureDevice().
+func Init(deviceIP string, deviceMAC, hostMAC string, id int) (iface *Interface, err error) {
+	device := &usb.Device{}
+	ConfigureDevice(device)
+
+	return Add(device, deviceIP, deviceMAC, hostMAC, id)
 }

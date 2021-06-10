@@ -109,7 +109,9 @@ func addDataInterface(device *usb.Device, configurationIndex int, eth *NIC) (ifa
 	return
 }
 
-func configureDevice(device *usb.Device) {
+// ConfigureDevice configures a USB device with default descriptors for a CDC
+// Ethernet (ECM) device, suitable for Add().
+func ConfigureDevice(device *usb.Device) {
 	// Supported Language Code Zero: English
 	device.SetLanguageCodes([]uint16{0x0409})
 
@@ -132,7 +134,7 @@ func configureDevice(device *usb.Device) {
 	iManufacturer, _ := device.AddString(`F-Secure Foundry`)
 	device.Descriptor.Manufacturer = iManufacturer
 
-	iProduct, _ := device.AddString(`RNDIS/Ethernet Gadget`)
+	iProduct, _ := device.AddString(`CDC Ethernet (ECM)`)
 	device.Descriptor.Product = iProduct
 
 	iSerial, _ := device.AddString(`0.1`)
