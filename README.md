@@ -9,7 +9,7 @@ Go on ARM SoCs.
 It currently implements CDC-ECM networking and for this reason the Ethernet
 device is only supported on Linux hosts.
 
-The package leverages on [gVisor tcpip](https://pkg.go.dev/gvisor.dev/gvisor/pkg/tcpip) to implement a TCP/IP
+The package leverages on gVisor [tcpip](https://pkg.go.dev/gvisor.dev/gvisor/pkg/tcpip) package (`go` branch) to implement a TCP/IP
 networking stack on bare metal, exposed through Ethernet over USB.
 
 Authors
