@@ -22,11 +22,13 @@ package usbnet
 import (
 	"fmt"
 	"net"
+	"strconv"
 
 	"github.com/f-secure-foundry/tamago/soc/imx6/usb"
 
 	"gvisor.dev/gvisor/pkg/tcpip"
 	"gvisor.dev/gvisor/pkg/tcpip/adapters/gonet"
+	"gvisor.dev/gvisor/pkg/tcpip/header"
 	"gvisor.dev/gvisor/pkg/tcpip/link/channel"
 	"gvisor.dev/gvisor/pkg/tcpip/network/arp"
 	"gvisor.dev/gvisor/pkg/tcpip/network/ipv4"
@@ -46,14 +48,14 @@ type Interface struct {
 	nicid tcpip.NICID
 	nic   *NIC
 
-	stack *stack.Stack
-	link  *channel.Endpoint
+	Stack *stack.Stack
+	Link  *channel.Endpoint
 
 	device *usb.Device
 }
 
 func (iface *Interface) configure(deviceMAC string) (err error) {
-	iface.stack = stack.New(stack.Options{
+	iface.Stack = stack.New(stack.Options{
 		NetworkProtocols: []stack.NetworkProtocolFactory{
 			ipv4.NewProtocol,
 			arp.NewProtocol},
@@ -68,27 +70,25 @@ func (iface *Interface) configure(deviceMAC string) (err error) {
 		return
 	}
 
-	iface.link = channel.New(256, MTU, linkAddr)
-	linkEP := stack.LinkEndpoint(iface.link)
+	iface.Link = channel.New(256, MTU, linkAddr)
+	linkEP := stack.LinkEndpoint(iface.Link)
 
-	if err := iface.stack.CreateNIC(iface.nicid, linkEP); err != nil {
+	if err := iface.Stack.CreateNIC(iface.nicid, linkEP); err != nil {
 		return fmt.Errorf("%v", err)
 	}
 
-	if err := iface.stack.AddAddress(iface.nicid, ipv4.ProtocolNumber, iface.addr); err != nil {
+	if err := iface.Stack.AddAddress(iface.nicid, ipv4.ProtocolNumber, iface.addr); err != nil {
 		return fmt.Errorf("%v", err)
 	}
 
-	subnet, err := tcpip.NewSubnet("\x00\x00\x00\x00", "\x00\x00\x00\x00")
+	rt := iface.Stack.GetRouteTable()
 
-	if err != nil {
-		return err
-	}
-
-	iface.stack.SetRouteTable([]tcpip.Route{{
-		Destination: subnet,
+	rt = append(rt, tcpip.Route{
+		Destination: header.IPv4EmptySubnet,
 		NIC:         iface.nicid,
-	}})
+	})
+
+	iface.Stack.SetRouteTable(rt)
 
 	return
 }
@@ -98,7 +98,7 @@ func (iface *Interface) configure(deviceMAC string) (err error) {
 func (iface *Interface) EnableICMP() error {
 	var wq waiter.Queue
 
-	ep, err := iface.stack.NewEndpoint(icmp.ProtocolNumber4, ipv4.ProtocolNumber, &wq)
+	ep, err := iface.Stack.NewEndpoint(icmp.ProtocolNumber4, ipv4.ProtocolNumber, &wq)
 
 	if err != nil {
 		return fmt.Errorf("endpoint error (icmp): %v", err)
@@ -118,18 +118,44 @@ func (iface *Interface) Device() *usb.Device {
 	return iface.device
 }
 
-// ListenerTCP4 returns a net.Listener capable of accepting connections for the
-// argument port on the Ethernet over USB device.
+// ListenerTCP4 returns a net.Listener capable of accepting IPv4 TCP
+// connections for the argument port on the Ethernet over USB device.
 func (iface *Interface) ListenerTCP4(port uint16) (net.Listener, error) {
 	fullAddr := tcpip.FullAddress{Addr: iface.addr, Port: port, NIC: iface.nicid}
 
-	listener, err := gonet.ListenTCP(iface.stack, fullAddr, ipv4.ProtocolNumber)
+	listener, err := gonet.ListenTCP(iface.Stack, fullAddr, ipv4.ProtocolNumber)
 
 	if err != nil {
 		return nil, err
 	}
 
 	return (net.Listener)(listener), nil
+}
+
+// Dial connects to an IPv4 TCP address, over the Ethernet over USB interface.
+func (iface *Interface) DialTCP4(address string) (net.Conn, error) {
+	host, port, err := net.SplitHostPort(address)
+
+	if err != nil {
+		return nil, err
+	}
+
+	p, err := strconv.Atoi(port)
+
+	if err != nil {
+		return nil, err
+	}
+
+	addr := net.ParseIP(host)
+	fullAddr := tcpip.FullAddress{Addr: tcpip.Address(addr.To4()), Port: uint16(p)}
+
+	conn, err := gonet.DialTCP(iface.Stack, fullAddr, ipv4.ProtocolNumber)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return (net.Conn)(conn), nil
 }
 
 // Add adds an Ethernet over USB configuration to a previously configured USB
@@ -160,7 +186,7 @@ func Add(device *usb.Device, deviceIP string, deviceMAC, hostMAC string, id int)
 	iface.nic = &NIC{
 		Host:   hostAddress,
 		Device: deviceAddress,
-		Link:   iface.link,
+		Link:   iface.Link,
 	}
 
 	err = iface.nic.Init(iface.device, 0)
