@@ -6,13 +6,13 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// Package usbnet implements a driver for Ethernet over USB emulation on i.MX6
-// SoCs.
+// Package usbnet implements TCP/IP connectivity through Ethernet over USB
+// (CDC-ECM) on i.MX6 SoCs.
 //
-// It currently implements CDC-ECM networking and for this reason the Ethernet
-// device is only supported on Linux hosts. Applications are meant to use the
-// driver in combination with gVisor tcpip package to expose TCP/IP networking
-// stack through Ethernet over USB.
+// The CDC-ECM Ethernet over USB driver is supported natively on Linux and
+// macOS hosts, while Windows requires third-party drivers.
+//
+// The TCP/IP stack is implemented using gVisor pure Go implementation.
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
 // supported by the TamaGo framework for bare metal Go on ARM SoCs, see

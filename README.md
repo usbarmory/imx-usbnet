@@ -1,16 +1,16 @@
 i.MX Ethernet over USB driver
 =============================
 
-This Go package implements a driver for Ethernet over USB emulation on NXP i.MX
-SoCs, it meant to be used with `GOOS=tamago GOARCH=arm` as supported by the
+This Go package implements TCP/IP connectivity through Ethernet over USB
+(CDC-ECM) on NXP i.MX SoCs, to be used with `GOOS=tamago GOARCH=arm` as supported by the
 [TamaGo](https://github.com/f-secure-foundry/tamago) framework for bare metal
 Go on ARM SoCs.
 
-It currently implements CDC-ECM networking and for this reason the Ethernet
-device is only supported on Linux hosts.
+The CDC-ECM Ethernet over USB driver is supported natively on Linux and macOS
+hosts while Windows requires using third-party drivers.
 
-The package leverages on gVisor [tcpip](https://pkg.go.dev/gvisor.dev/gvisor/pkg/tcpip) package (`go` branch) to implement a TCP/IP
-networking stack on bare metal, exposed through Ethernet over USB.
+The package supports TCP/IP networking through gVisor [tcpip](https://pkg.go.dev/gvisor.dev/gvisor/pkg/tcpip)
+package (`go` branch) stack pure Go implementation.
 
 Authors
 =======

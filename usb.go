@@ -14,6 +14,9 @@ import (
 	"github.com/f-secure-foundry/tamago/soc/imx6/usb"
 )
 
+// MaxPacketSize represents the USB data interface endpoint maximum packet size
+var MaxPacketSize uint16 = 512
+
 func addControlInterface(device *usb.Device, configurationIndex int, eth *NIC) (iface *usb.InterfaceDescriptor) {
 	iface = &usb.InterfaceDescriptor{}
 	iface.SetDefaults()
@@ -45,11 +48,9 @@ func addControlInterface(device *usb.Device, configurationIndex int, eth *NIC) (
 	union := &usb.CDCUnionDescriptor{}
 	union.SetDefaults()
 
-	// Master/Slave are identical as ECM requires the use of "alternate
-	// settings" for its data interface.
 	numInterfaces := 1 + len(device.Configurations[configurationIndex].Interfaces)
 	union.MasterInterface = uint8(numInterfaces - 1)
-	union.SlaveInterface0 = uint8(numInterfaces - 1)
+	union.SlaveInterface0 = uint8(numInterfaces)
 
 	iface.ClassDescriptors = append(iface.ClassDescriptors, union.Bytes())
 
@@ -76,35 +77,51 @@ func addControlInterface(device *usb.Device, configurationIndex int, eth *NIC) (
 	return
 }
 
-func addDataInterface(device *usb.Device, configurationIndex int, eth *NIC) (iface *usb.InterfaceDescriptor) {
-	iface = &usb.InterfaceDescriptor{}
-	iface.SetDefaults()
+func addDataInterfaces(device *usb.Device, configurationIndex int, eth *NIC) {
+	iface0 := &usb.InterfaceDescriptor{}
+	iface0.SetDefaults()
 
-	// ECM requires the use of "alternate settings" for its data interface
-	iface.AlternateSetting = 1
-	iface.NumEndpoints = 2
-	iface.InterfaceClass = 10
+	iface0.NumEndpoints = 0
+	iface0.InterfaceClass = 10
+
+	device.Configurations[configurationIndex].AddInterface(iface0)
+
+	// CDC requires the use of a default interface setting with no
+	// endpoints to signal a deactivated state, an additional interface
+	// setting (with the data exchange endpoint pair) is used for normal
+	// operation (see the Topology section in USB CDC specifications).
+
+	iface1 := &usb.InterfaceDescriptor{}
+	iface1.SetDefaults()
+
+	iface1.AlternateSetting = 1
+	iface1.NumEndpoints = 2
+	iface1.InterfaceClass = 10
 
 	iInterface, _ := device.AddString(`CDC Data`)
-	iface.Interface = iInterface
+	iface1.Interface = iInterface
 
 	ep1IN := &usb.EndpointDescriptor{}
 	ep1IN.SetDefaults()
 	ep1IN.EndpointAddress = 0x81
 	ep1IN.Attributes = 2
+	ep1IN.MaxPacketSize = MaxPacketSize
 	ep1IN.Function = eth.Tx
 
-	iface.Endpoints = append(iface.Endpoints, ep1IN)
+	iface1.Endpoints = append(iface1.Endpoints, ep1IN)
 
 	ep1OUT := &usb.EndpointDescriptor{}
 	ep1OUT.SetDefaults()
 	ep1OUT.EndpointAddress = 0x01
+	ep1IN.MaxPacketSize = MaxPacketSize
 	ep1OUT.Attributes = 2
 	ep1OUT.Function = eth.Rx
 
-	iface.Endpoints = append(iface.Endpoints, ep1OUT)
+	iface1.Endpoints = append(iface1.Endpoints, ep1OUT)
 
-	device.Configurations[configurationIndex].AddInterface(iface)
+	device.Configurations[configurationIndex].AddInterface(iface1)
+
+	eth.maxPacketSize = int(MaxPacketSize)
 
 	return
 }

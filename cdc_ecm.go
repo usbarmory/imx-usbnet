@@ -72,9 +72,7 @@ func (eth *NIC) Init(device *usb.Device, configurationIndex int) (err error) {
 	}
 
 	addControlInterface(device, configurationIndex, eth)
-	dataInterface := addDataInterface(device, configurationIndex, eth)
-
-	eth.maxPacketSize = int(dataInterface.Endpoints[0].MaxPacketSize)
+	addDataInterfaces(device, configurationIndex, eth)
 
 	return
 }
