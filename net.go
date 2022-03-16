@@ -16,7 +16,7 @@
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
 // supported by the TamaGo framework for bare metal Go on ARM SoCs, see
-// https://github.com/f-secure-foundry/tamago.
+// https://github.com/usbarmory/tamago.
 package usbnet
 
 import (
@@ -24,7 +24,7 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/f-secure-foundry/tamago/soc/imx6/usb"
+	"github.com/usbarmory/tamago/soc/imx6/usb"
 
 	"gvisor.dev/gvisor/pkg/tcpip"
 	"gvisor.dev/gvisor/pkg/tcpip/adapters/gonet"

@@ -11,7 +11,7 @@ package usbnet
 import (
 	"strings"
 
-	"github.com/f-secure-foundry/tamago/soc/imx6/usb"
+	"github.com/usbarmory/tamago/soc/imx6/usb"
 )
 
 // MaxPacketSize represents the USB data interface endpoint maximum packet size
