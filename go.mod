@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/usbarmory/tamago v0.0.0-20220316100121-e9baee61883d
-	gvisor.dev/gvisor v0.0.0-20210609031239-2d7fb745b248
+	gvisor.dev/gvisor v0.0.0-20210805222911-e8e12c2ea577
 )
 
 require (
