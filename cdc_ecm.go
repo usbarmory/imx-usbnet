@@ -15,8 +15,8 @@ import (
 
 	"github.com/usbarmory/tamago/soc/imx6/usb"
 
+	"gvisor.dev/gvisor/pkg/buffer"
 	"gvisor.dev/gvisor/pkg/tcpip"
-	"gvisor.dev/gvisor/pkg/tcpip/buffer"
 	"gvisor.dev/gvisor/pkg/tcpip/link/channel"
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
 )
@@ -97,13 +97,13 @@ func (eth *NIC) ECMRx(out []byte, lastErr error) (_ []byte, err error) {
 		return
 	}
 
-	hdr := buffer.NewViewFromBytes(eth.buf[0:14])
+	hdr := eth.buf[0:14]
 	proto := tcpip.NetworkProtocolNumber(binary.BigEndian.Uint16(eth.buf[12:14]))
-	payload := buffer.NewViewFromBytes(eth.buf[14:])
+	payload := eth.buf[14:]
 
 	pkt := stack.NewPacketBuffer(stack.PacketBufferOptions{
 		ReserveHeaderBytes: len(hdr),
-		Data:               payload.ToVectorisedView(),
+		Payload:            buffer.NewWithData(payload),
 	})
 
 	copy(pkt.LinkHeader().Push(len(hdr)), hdr)
@@ -117,21 +117,21 @@ func (eth *NIC) ECMRx(out []byte, lastErr error) (_ []byte, err error) {
 // ECMTx implements the endpoint 1 IN function, used to transmit Ethernet
 // packet from device to host.
 func (eth *NIC) ECMTx(_ []byte, lastErr error) (in []byte, err error) {
-	info, valid := eth.Link.Read()
+	var pkt *stack.PacketBuffer
 
-	if !valid {
+	if pkt = eth.Link.Read(); pkt == nil {
 		return
 	}
 
 	proto := make([]byte, 2)
-	binary.BigEndian.PutUint16(proto, uint16(info.Proto))
+	binary.BigEndian.PutUint16(proto, uint16(pkt.NetworkProtocolNumber))
 
 	// Ethernet frame header
 	in = append(in, eth.Host...)
 	in = append(in, eth.Device...)
 	in = append(in, proto...)
 
-	for _, v := range info.Pkt.Views() {
+	for _, v := range pkt.Slices() {
 		in = append(in, v...)
 	}
 

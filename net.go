@@ -77,7 +77,12 @@ func (iface *Interface) configure(deviceMAC string) (err error) {
 		return fmt.Errorf("%v", err)
 	}
 
-	if err := iface.Stack.AddAddress(iface.nicid, ipv4.ProtocolNumber, iface.addr); err != nil {
+	protocolAddr := tcpip.ProtocolAddress{
+		Protocol:          ipv4.ProtocolNumber,
+		AddressWithPrefix: iface.addr.WithPrefix(),
+	}
+
+	if err := iface.Stack.AddProtocolAddress(iface.nicid, protocolAddr, stack.AddressProperties{}); err != nil {
 		return fmt.Errorf("%v", err)
 	}
 
