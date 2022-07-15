@@ -36,7 +36,7 @@ type NIC struct {
 	// already defined.
 	Rx func([]byte, error) ([]byte, error)
 
-	// Tx is endpoint 1 IN function, set by Init() to ECMTx if not alread
+	// Tx is endpoint 1 IN function, set by Init() to ECMTx if not already
 	// defined.
 	Tx func([]byte, error) ([]byte, error)
 
