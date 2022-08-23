@@ -24,7 +24,7 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/usbarmory/tamago/soc/imx6/usb"
+	"github.com/usbarmory/tamago/soc/nxp/usb"
 
 	"gvisor.dev/gvisor/pkg/tcpip"
 	"gvisor.dev/gvisor/pkg/tcpip/adapters/gonet"

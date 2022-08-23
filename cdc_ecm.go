@@ -13,7 +13,7 @@ import (
 	"errors"
 	"net"
 
-	"github.com/usbarmory/tamago/soc/imx6/usb"
+	"github.com/usbarmory/tamago/soc/nxp/usb"
 
 	"gvisor.dev/gvisor/pkg/buffer"
 	"gvisor.dev/gvisor/pkg/tcpip"
