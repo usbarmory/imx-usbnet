@@ -15,7 +15,7 @@ import (
 
 	"github.com/usbarmory/tamago/soc/nxp/usb"
 
-	"gvisor.dev/gvisor/pkg/buffer"
+	"gvisor.dev/gvisor/pkg/bufferv2"
 	"gvisor.dev/gvisor/pkg/tcpip"
 	"gvisor.dev/gvisor/pkg/tcpip/link/channel"
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
@@ -103,7 +103,7 @@ func (eth *NIC) ECMRx(out []byte, lastErr error) (_ []byte, err error) {
 
 	pkt := stack.NewPacketBuffer(stack.PacketBufferOptions{
 		ReserveHeaderBytes: len(hdr),
-		Payload:            buffer.NewWithData(payload),
+		Payload:            bufferv2.MakeWithData(payload),
 	})
 
 	copy(pkt.LinkHeader().Push(len(hdr)), hdr)
@@ -131,7 +131,7 @@ func (eth *NIC) ECMTx(_ []byte, lastErr error) (in []byte, err error) {
 	in = append(in, eth.Device...)
 	in = append(in, proto...)
 
-	for _, v := range pkt.Slices() {
+	for _, v := range pkt.AsSlices() {
 		in = append(in, v...)
 	}
 
