@@ -46,7 +46,7 @@ type Interface struct {
 	addr tcpip.Address
 
 	nicid tcpip.NICID
-	nic   *NIC
+	NIC   *NIC
 
 	Stack *stack.Stack
 	Link  *channel.Endpoint
@@ -188,13 +188,13 @@ func Add(device *usb.Device, deviceIP string, deviceMAC, hostMAC string, id int)
 		return
 	}
 
-	iface.nic = &NIC{
+	iface.NIC = &NIC{
 		Host:   hostAddress,
 		Device: deviceAddress,
 		Link:   iface.Link,
 	}
 
-	err = iface.nic.Init(iface.device, 0)
+	err = iface.NIC.Init(iface.device, 0)
 
 	return
 }

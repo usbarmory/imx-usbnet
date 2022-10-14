@@ -32,7 +32,7 @@ type NIC struct {
 	// Link is a gVisor channel endpoint
 	Link *channel.Endpoint
 
-	// Rx is tendpoint 1 OUT function, set by Init() to ECMRx if not
+	// Rx is endpoint 1 OUT function, set by Init() to ECMRx if not
 	// already defined.
 	Rx func([]byte, error) ([]byte, error)
 
