@@ -50,6 +50,8 @@ type Interface struct {
 
 	Stack *stack.Stack
 	Link  *channel.Endpoint
+
+	device *usb.Device
 }
 
 func (iface *Interface) configure(deviceMAC string) (err error) {
@@ -118,7 +120,7 @@ func (iface *Interface) EnableICMP() error {
 
 // Device returns the USB device associated to the Ethernet instance.
 func (iface *Interface) Device() *usb.Device {
-	return iface.NIC.device
+	return iface.device
 }
 
 // ListenerTCP4 returns a net.Listener capable of accepting IPv4 TCP
@@ -179,6 +181,7 @@ func Add(device *usb.Device, deviceIP string, deviceMAC, hostMAC string, id int)
 	iface = &Interface{
 		nicid:  tcpip.NICID(id),
 		addr:   tcpip.Address(net.ParseIP(deviceIP)).To4(),
+		device: device,
 	}
 
 	if err = iface.configure(deviceMAC); err != nil {
@@ -189,10 +192,9 @@ func Add(device *usb.Device, deviceIP string, deviceMAC, hostMAC string, id int)
 		Host:   hostAddress,
 		Device: deviceAddress,
 		Link:   iface.Link,
-		device: device,
 	}
 
-	err = iface.NIC.Init(0)
+	err = iface.NIC.Init(iface.device, 0)
 
 	return
 }
