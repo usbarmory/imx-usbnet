@@ -44,13 +44,14 @@ type NIC struct {
 	// not already defined.
 	Control func([]byte, error) ([]byte, error)
 
+	device        *usb.Device
 	maxPacketSize int
 	buf           []byte
 }
 
 // Init initializes a virtual Ethernet instance on a specific USB device and
 // configuration index.
-func (eth *NIC) Init(device *usb.Device, configurationIndex int) (err error) {
+func (eth *NIC) Init(configurationIndex int) (err error) {
 	if eth.Link == nil {
 		return errors.New("missing link endpoint")
 	}
