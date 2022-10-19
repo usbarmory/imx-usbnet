@@ -72,8 +72,8 @@ func (eth *NIC) Init(configurationIndex int) (err error) {
 		eth.Control = eth.ECMControl
 	}
 
-	addControlInterface(device, configurationIndex, eth)
-	addDataInterfaces(device, configurationIndex, eth)
+	addControlInterface(eth.device, configurationIndex, eth)
+	addDataInterfaces(eth.device, configurationIndex, eth)
 
 	return
 }
