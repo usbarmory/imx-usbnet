@@ -17,7 +17,7 @@ import (
 // MaxPacketSize represents the USB data interface endpoint maximum packet size
 var MaxPacketSize uint16 = 512
 
-func addControlInterface(device *usb.Device, configurationIndex int, eth *NIC) (iface *usb.InterfaceDescriptor) {
+func addControlInterface(device *usb.Device, eth *NIC) (iface *usb.InterfaceDescriptor) {
 	iface = &usb.InterfaceDescriptor{}
 	iface.SetDefaults()
 
@@ -48,7 +48,7 @@ func addControlInterface(device *usb.Device, configurationIndex int, eth *NIC) (
 	union := &usb.CDCUnionDescriptor{}
 	union.SetDefaults()
 
-	numInterfaces := 1 + len(device.Configurations[configurationIndex].Interfaces)
+	numInterfaces := 1 + len(device.Configurations[0].Interfaces)
 	union.MasterInterface = uint8(numInterfaces - 1)
 	union.SlaveInterface0 = uint8(numInterfaces)
 
@@ -57,7 +57,7 @@ func addControlInterface(device *usb.Device, configurationIndex int, eth *NIC) (
 	ethernet := &usb.CDCEthernetDescriptor{}
 	ethernet.SetDefaults()
 
-	iMacAddress, _ := device.AddString(strings.ReplaceAll(eth.Host.String(), ":", ""))
+	iMacAddress, _ := device.AddString(strings.ReplaceAll(eth.HostMAC.String(), ":", ""))
 	ethernet.MacAddress = iMacAddress
 
 	iface.ClassDescriptors = append(iface.ClassDescriptors, ethernet.Bytes())
@@ -72,19 +72,19 @@ func addControlInterface(device *usb.Device, configurationIndex int, eth *NIC) (
 
 	iface.Endpoints = append(iface.Endpoints, ep2IN)
 
-	device.Configurations[configurationIndex].AddInterface(iface)
+	device.Configurations[0].AddInterface(iface)
 
 	return
 }
 
-func addDataInterfaces(device *usb.Device, configurationIndex int, eth *NIC) {
+func addDataInterfaces(device *usb.Device, eth *NIC) {
 	iface0 := &usb.InterfaceDescriptor{}
 	iface0.SetDefaults()
 
 	iface0.NumEndpoints = 0
 	iface0.InterfaceClass = 10
 
-	device.Configurations[configurationIndex].AddInterface(iface0)
+	device.Configurations[0].AddInterface(iface0)
 
 	// CDC requires the use of a default interface setting with no
 	// endpoints to signal a deactivated state, an additional interface
@@ -119,7 +119,7 @@ func addDataInterfaces(device *usb.Device, configurationIndex int, eth *NIC) {
 
 	iface1.Endpoints = append(iface1.Endpoints, ep1OUT)
 
-	device.Configurations[configurationIndex].AddInterface(iface1)
+	device.Configurations[0].AddInterface(iface1)
 
 	eth.maxPacketSize = int(MaxPacketSize)
 

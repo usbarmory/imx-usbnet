@@ -24,13 +24,16 @@ import (
 // NIC represents an virtual Ethernet instance.
 type NIC struct {
 	// Host MAC address
-	Host net.HardwareAddr
+	HostMAC net.HardwareAddr
 
 	// Device MAC address
-	Device net.HardwareAddr
+	DeviceMAC net.HardwareAddr
 
 	// Link is a gVisor channel endpoint
 	Link *channel.Endpoint
+
+	// Device is the physical interface associated to the virtual one.
+	Device *usb.Device
 
 	// Rx is endpoint 1 OUT function, set by Init() to ECMRx if not
 	// already defined.
@@ -50,12 +53,12 @@ type NIC struct {
 
 // Init initializes a virtual Ethernet instance on a specific USB device and
 // configuration index.
-func (eth *NIC) Init(device *usb.Device, configurationIndex int) (err error) {
+func (eth *NIC) Init() (err error) {
 	if eth.Link == nil {
 		return errors.New("missing link endpoint")
 	}
 
-	if len(eth.Host) != 6 || len(eth.Device) != 6 {
+	if len(eth.HostMAC) != 6 || len(eth.DeviceMAC) != 6 {
 		return errors.New("invalid MAC address")
 	}
 
@@ -71,8 +74,8 @@ func (eth *NIC) Init(device *usb.Device, configurationIndex int) (err error) {
 		eth.Control = eth.ECMControl
 	}
 
-	addControlInterface(device, configurationIndex, eth)
-	addDataInterfaces(device, configurationIndex, eth)
+	addControlInterface(eth.Device, eth)
+	addDataInterfaces(eth.Device, eth)
 
 	return
 }
@@ -127,8 +130,8 @@ func (eth *NIC) ECMTx(_ []byte, lastErr error) (in []byte, err error) {
 	binary.BigEndian.PutUint16(proto, uint16(pkt.NetworkProtocolNumber))
 
 	// Ethernet frame header
-	in = append(in, eth.Host...)
-	in = append(in, eth.Device...)
+	in = append(in, eth.HostMAC...)
+	in = append(in, eth.DeviceMAC...)
 	in = append(in, proto...)
 
 	for _, v := range pkt.AsSlices() {
