@@ -158,7 +158,7 @@ func (iface *Interface) DialTCP4(address string) (net.Conn, error) {
 
 // Add adds an Ethernet over USB configuration to a previously configured USB
 // device, it can be used in place of Init() to create composite USB devices.
-func Add(device *usb.Device, deviceIP string, deviceMAC, hostMAC string, id int) (iface *Interface, err error) {
+func Add(device *usb.Device, deviceIP string, deviceMAC string, hostMAC string, id int) (iface *Interface, err error) {
 	hostAddress, err := net.ParseMAC(hostMAC)
 
 	if err != nil {
