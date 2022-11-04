@@ -9,8 +9,9 @@ Go on ARM SoCs.
 The CDC-ECM Ethernet over USB driver is supported natively on Linux and macOS
 hosts while Windows requires using third-party drivers.
 
-The package supports TCP/IP networking through gVisor [tcpip](https://pkg.go.dev/gvisor.dev/gvisor/pkg/tcpip)
-package (`go` branch) stack pure Go implementation.
+The package supports TCP/IP networking through gVisor (`go` branch)
+[tcpip](https://pkg.go.dev/gvisor.dev/gvisor/pkg/tcpip)
+stack pure Go implementation.
 
 Authors
 =======
