@@ -3,7 +3,7 @@ module github.com/usbarmory/imx-usbnet
 go 1.18
 
 require (
-	github.com/usbarmory/tamago v0.0.0-20230118100654-0e5cc664e695
+	github.com/usbarmory/tamago v0.0.0-20230502075139-4ff8fc5a5c87
 	gvisor.dev/gvisor v0.0.0-20230118154312-8c6072b1c5c4
 )
 

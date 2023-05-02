@@ -22,8 +22,8 @@ func addControlInterface(device *usb.Device, eth *NIC) (iface *usb.InterfaceDesc
 	iface.SetDefaults()
 
 	iface.NumEndpoints = 1
-	iface.InterfaceClass = 2
-	iface.InterfaceSubClass = 6
+	iface.InterfaceClass = usb.COMMUNICATION_INTERFACE_CLASS
+	iface.InterfaceSubClass = usb.ETH_SUBCLASS
 
 	iInterface, _ := device.AddString(`CDC Ethernet Control Model (ECM)`)
 	iface.Interface = iInterface
@@ -82,7 +82,7 @@ func addDataInterfaces(device *usb.Device, eth *NIC) {
 	iface0.SetDefaults()
 
 	iface0.NumEndpoints = 0
-	iface0.InterfaceClass = 10
+	iface0.InterfaceClass = usb.DATA_INTERFACE_CLASS
 
 	device.Configurations[0].AddInterface(iface0)
 
@@ -96,7 +96,7 @@ func addDataInterfaces(device *usb.Device, eth *NIC) {
 
 	iface1.AlternateSetting = 1
 	iface1.NumEndpoints = 2
-	iface1.InterfaceClass = 10
+	iface0.InterfaceClass = usb.DATA_INTERFACE_CLASS
 
 	iInterface, _ := device.AddString(`CDC Data`)
 	iface1.Interface = iInterface
@@ -113,7 +113,7 @@ func addDataInterfaces(device *usb.Device, eth *NIC) {
 	ep1OUT := &usb.EndpointDescriptor{}
 	ep1OUT.SetDefaults()
 	ep1OUT.EndpointAddress = 0x01
-	ep1IN.MaxPacketSize = MaxPacketSize
+	ep1OUT.MaxPacketSize = MaxPacketSize
 	ep1OUT.Attributes = 2
 	ep1OUT.Function = eth.Rx
 
