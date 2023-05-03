@@ -196,7 +196,7 @@ func Add(device *usb.Device, deviceIP string, deviceMAC string, hostMAC string, 
 // as set by ConfigureDevice().
 func Init(deviceIP string, deviceMAC, hostMAC string, id int) (iface *Interface, err error) {
 	device := &usb.Device{}
-	ConfigureDevice(device)
+	ConfigureDevice(device, deviceMAC)
 
 	return Add(device, deviceIP, deviceMAC, hostMAC, id)
 }
