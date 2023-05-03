@@ -32,8 +32,7 @@ func addControlInterface(device *usb.Device, eth *NIC) (iface *usb.InterfaceDesc
 	// functions in this same configuration.
 	iface.IAD = &usb.InterfaceAssociationDescriptor{}
 	iface.IAD.SetDefaults()
-	// alternate settings do not count
-	iface.IAD.InterfaceCount = 1
+	iface.IAD.InterfaceCount = 2
 	iface.IAD.FunctionClass = iface.InterfaceClass
 	iface.IAD.FunctionSubClass = iface.InterfaceSubClass
 
