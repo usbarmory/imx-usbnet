@@ -20,6 +20,7 @@
 package usbnet
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"strconv"
@@ -197,7 +198,7 @@ func fullAddr(a string) (tcpip.FullAddress, error) {
 	}
 
 	addr := net.ParseIP(host)
-	return tcpip.FullAddress{Addr: tcpip.Address(addr.To4()), Port: uint16(p)}, nil
+	return tcpip.FullAddress{Addr: tcpip.AddrFromSlice(addr.To4()), Port: uint16(p)}, nil
 }
 
 // Add adds an Ethernet over USB configuration to a previously configured USB

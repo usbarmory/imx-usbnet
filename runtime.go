@@ -51,7 +51,7 @@ func (iface *Interface) hookGoNet() {
 
 		addr := la.(*net.UDPAddr)
 
-		lAddr := tcpip.FullAddress{Addr: tcpip.Address(addr.IP), Port: uint16(addr.Port)}
+		lAddr := tcpip.FullAddress{Addr: tcpip.AddrFromSlice(addr.IP), Port: uint16(addr.Port)}
 		return gonet.DialUDP(iface.Stack, &lAddr, &tcpip.FullAddress{}, ipv4.ProtocolNumber)
 	}
 }
