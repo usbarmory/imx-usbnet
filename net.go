@@ -144,6 +144,7 @@ func (iface *Interface) DialContextTCP4(ctx context.Context, address string) (ne
 		return nil, err
 	}
 
+
 	conn, err := gonet.DialContextTCP(ctx, iface.Stack, fullAddr, ipv4.ProtocolNumber)
 
 	if err != nil {
@@ -215,8 +216,8 @@ func Add(device *usb.Device, deviceIP string, deviceMAC string, hostMAC string, 
 	}
 
 	iface = &Interface{
-		nicid:  tcpip.NICID(id),
-		addr:   tcpip.Address(net.ParseIP(deviceIP)).To4(),
+		nicid: tcpip.NICID(id),
+		addr:  tcpip.AddrFromSlice(net.ParseIP(deviceIP)).To4(),
 	}
 
 	if err = iface.configure(deviceMAC); err != nil {
