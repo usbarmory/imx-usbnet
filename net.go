@@ -52,7 +52,7 @@ type Interface struct {
 	Link  *channel.Endpoint
 }
 
-func (iface *Interface) configure(deviceMAC string) (err error) {
+func (iface *Interface) configure(mac string) (err error) {
 	iface.Stack = stack.New(stack.Options{
 		NetworkProtocols: []stack.NetworkProtocolFactory{
 			ipv4.NewProtocol,
@@ -62,7 +62,7 @@ func (iface *Interface) configure(deviceMAC string) (err error) {
 			icmp.NewProtocol4},
 	})
 
-	linkAddr, err := tcpip.ParseMACAddress(deviceMAC)
+	linkAddr, err := tcpip.ParseMACAddress(mac)
 
 	if err != nil {
 		return
@@ -92,6 +92,7 @@ func (iface *Interface) configure(deviceMAC string) (err error) {
 	})
 
 	iface.Stack.SetRouteTable(rt)
+	iface.hookGoNet()
 
 	return
 }
@@ -117,10 +118,9 @@ func (iface *Interface) EnableICMP() error {
 }
 
 // ListenerTCP4 returns a net.Listener capable of accepting IPv4 TCP
-// connections for the argument port on the Ethernet over USB device.
+// connections for the argument port.
 func (iface *Interface) ListenerTCP4(port uint16) (net.Listener, error) {
 	fullAddr := tcpip.FullAddress{Addr: iface.addr, Port: port, NIC: iface.nicid}
-
 	listener, err := gonet.ListenTCP(iface.Stack, fullAddr, ipv4.ProtocolNumber)
 
 	if err != nil {
@@ -130,30 +130,73 @@ func (iface *Interface) ListenerTCP4(port uint16) (net.Listener, error) {
 	return (net.Listener)(listener), nil
 }
 
-// Dial connects to an IPv4 TCP address, over the Ethernet over USB interface.
+// DialTCP4 connects to an IPv4 TCP address.
 func (iface *Interface) DialTCP4(address string) (net.Conn, error) {
-	host, port, err := net.SplitHostPort(address)
+	return iface.DialContextTCP4(context.Background(), address)
+}
+
+// DialContextTCP4 connects to an IPv4 TCP address with support for timeout
+// supplied by ctx.
+func (iface *Interface) DialContextTCP4(ctx context.Context, address string) (net.Conn, error) {
+	fullAddr, err := fullAddr(address)
 
 	if err != nil {
 		return nil, err
 	}
 
-	p, err := strconv.Atoi(port)
-
-	if err != nil {
-		return nil, err
-	}
-
-	addr := net.ParseIP(host)
-	fullAddr := tcpip.FullAddress{Addr: tcpip.Address(addr.To4()), Port: uint16(p)}
-
-	conn, err := gonet.DialTCP(iface.Stack, fullAddr, ipv4.ProtocolNumber)
+	conn, err := gonet.DialContextTCP(ctx, iface.Stack, fullAddr, ipv4.ProtocolNumber)
 
 	if err != nil {
 		return nil, err
 	}
 
 	return (net.Conn)(conn), nil
+}
+
+// DialUDP4 creates a UDP connection to the ip:port specified by rAddr, optionally setting
+// the local ip:port to lAddr.
+func (iface *Interface) DialUDP4(lAddr, rAddr string) (net.Conn, error) {
+	var rFullAddr tcpip.FullAddress
+	var lFullAddr tcpip.FullAddress
+	var err error
+
+	if rAddr != "" {
+		if rFullAddr, err = fullAddr(rAddr); err != nil {
+			return nil, fmt.Errorf("failed to parse rAddr %q: %v", rAddr, err)
+		}
+	}
+
+	if lAddr != "" {
+		if lFullAddr, err = fullAddr(lAddr); err != nil {
+			return nil, fmt.Errorf("failed to parse lAddr %q: %v", lAddr, err)
+		}
+	}
+
+	conn, err := gonet.DialUDP(iface.Stack, &lFullAddr, &rFullAddr, ipv4.ProtocolNumber)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return (net.Conn)(conn), nil
+}
+
+// fullAddr attempts to convert the ip:port to a FullAddress struct.
+func fullAddr(a string) (tcpip.FullAddress, error) {
+	host, port, err := net.SplitHostPort(a)
+
+	if err != nil {
+		return tcpip.FullAddress{}, err
+	}
+
+	p, err := strconv.Atoi(port)
+
+	if err != nil {
+		return tcpip.FullAddress{}, err
+	}
+
+	addr := net.ParseIP(host)
+	return tcpip.FullAddress{Addr: tcpip.Address(addr.To4()), Port: uint16(p)}, nil
 }
 
 // Add adds an Ethernet over USB configuration to a previously configured USB
