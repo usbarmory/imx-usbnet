@@ -36,6 +36,7 @@ import (
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
 	"gvisor.dev/gvisor/pkg/tcpip/transport/icmp"
 	"gvisor.dev/gvisor/pkg/tcpip/transport/tcp"
+	"gvisor.dev/gvisor/pkg/tcpip/transport/udp"
 	"gvisor.dev/gvisor/pkg/waiter"
 )
 
@@ -60,7 +61,8 @@ func (iface *Interface) configure(mac string) (err error) {
 			arp.NewProtocol},
 		TransportProtocols: []stack.TransportProtocolFactory{
 			tcp.NewProtocol,
-			icmp.NewProtocol4},
+			icmp.NewProtocol4,
+			udp.NewProtocol},
 	})
 
 	linkAddr, err := tcpip.ParseMACAddress(mac)
