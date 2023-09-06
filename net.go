@@ -185,16 +185,16 @@ func (iface *Interface) DialUDP4(lAddr, rAddr string) (net.Conn, error) {
 
 // fullAddr attempts to convert the ip:port to a FullAddress struct.
 func fullAddr(a string) (tcpip.FullAddress, error) {
+	var p int
+
 	host, port, err := net.SplitHostPort(a)
 
-	if err != nil {
-		return tcpip.FullAddress{}, err
-	}
-
-	p, err := strconv.Atoi(port)
-
-	if err != nil {
-		return tcpip.FullAddress{}, err
+	if err == nil {
+		if p, err = strconv.Atoi(port); err != nil {
+			return tcpip.FullAddress{}, err
+		}
+	} else {
+		host = a
 	}
 
 	addr := net.ParseIP(host)
