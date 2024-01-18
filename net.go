@@ -54,16 +54,18 @@ type Interface struct {
 	Link  *channel.Endpoint
 }
 
-func (iface *Interface) configure(mac string) (err error) {
-	iface.Stack = stack.New(stack.Options{
-		NetworkProtocols: []stack.NetworkProtocolFactory{
-			ipv4.NewProtocol,
-			arp.NewProtocol},
-		TransportProtocols: []stack.TransportProtocolFactory{
-			tcp.NewProtocol,
-			icmp.NewProtocol4,
-			udp.NewProtocol},
-	})
+func (iface *Interface) configure(mac string, s *stack.Stack) (err error) {
+	if s == nil {
+		s = stack.New(stack.Options{
+			NetworkProtocols: []stack.NetworkProtocolFactory{
+				ipv4.NewProtocol,
+				arp.NewProtocol},
+			TransportProtocols: []stack.TransportProtocolFactory{
+				tcp.NewProtocol,
+				icmp.NewProtocol4,
+				udp.NewProtocol},
+		})
+	}
 
 	linkAddr, err := tcpip.ParseMACAddress(mac)
 
@@ -71,7 +73,9 @@ func (iface *Interface) configure(mac string) (err error) {
 		return
 	}
 
+	iface.Stack = s
 	iface.Link = channel.New(256, MTU, linkAddr)
+
 	linkEP := stack.LinkEndpoint(iface.Link)
 
 	if err := iface.Stack.CreateNIC(iface.nicid, linkEP); err != nil {
@@ -203,7 +207,7 @@ func fullAddr(a string) (tcpip.FullAddress, error) {
 
 // Add adds an Ethernet over USB configuration to a previously configured USB
 // device, it can be used in place of Init() to create composite USB devices.
-func Add(device *usb.Device, deviceIP string, deviceMAC string, hostMAC string, id int) (iface *Interface, err error) {
+func Add(device *usb.Device, deviceIP string, deviceMAC string, hostMAC string, id int, stack *stack.Stack) (iface *Interface, err error) {
 	hostAddress, err := net.ParseMAC(hostMAC)
 
 	if err != nil {
@@ -221,7 +225,7 @@ func Add(device *usb.Device, deviceIP string, deviceMAC string, hostMAC string, 
 		addr:  tcpip.AddrFromSlice(net.ParseIP(deviceIP)).To4(),
 	}
 
-	if err = iface.configure(deviceMAC); err != nil {
+	if err = iface.configure(deviceMAC, stack); err != nil {
 		return
 	}
 
@@ -237,11 +241,12 @@ func Add(device *usb.Device, deviceIP string, deviceMAC string, hostMAC string, 
 	return
 }
 
-// Init initializes an Ethernet over USB device, configured with the defaults
-// as set by ConfigureDevice().
-func Init(deviceIP string, deviceMAC, hostMAC string, id int) (iface *Interface, err error) {
+// Init initializes an Ethernet over USB interface (see ConfigureDevice() for
+// its defaults) associating it to a gVisor link, the link is assigned to a new
+// or existing TCP/IP gVisor stack depending on the stack argument.
+func Init(deviceIP string, deviceMAC, hostMAC string, id int, stack *stack.Stack) (iface *Interface, err error) {
 	device := &usb.Device{}
 	ConfigureDevice(device, deviceMAC)
 
-	return Add(device, deviceIP, deviceMAC, hostMAC, id)
+	return Add(device, deviceIP, deviceMAC, hostMAC, id, stack)
 }
