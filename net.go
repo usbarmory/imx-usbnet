@@ -40,31 +40,39 @@ import (
 	"gvisor.dev/gvisor/pkg/waiter"
 )
 
-// MTU represents the Ethernet Maximum Transmission Unit
-var MTU uint32 = 1500
+var (
+	// MTU represents the Ethernet Maximum Transmission Unit
+	MTU uint32 = 1500
+
+	// NICID represents the default gVisor NIC identifier
+	NICID = tcpip.NICID(1)
+
+	// DefaultStackOptions represents the default gVisor Stack configuration
+	DefaultStackOptions = stack.Options{
+		NetworkProtocols: []stack.NetworkProtocolFactory{
+			ipv4.NewProtocol,
+			arp.NewProtocol},
+		TransportProtocols: []stack.TransportProtocolFactory{
+			tcp.NewProtocol,
+			icmp.NewProtocol4,
+			udp.NewProtocol},
+	}
+)
 
 // Interface represents an Ethernet over USB interface instance.
 type Interface struct {
-	addr tcpip.Address
-
-	nicid tcpip.NICID
+	NICID tcpip.NICID
 	NIC   *NIC
 
 	Stack *stack.Stack
 	Link  *channel.Endpoint
+
+	addr tcpip.Address
 }
 
-func (iface *Interface) configure(mac string, s *stack.Stack) (err error) {
-	if s == nil {
-		s = stack.New(stack.Options{
-			NetworkProtocols: []stack.NetworkProtocolFactory{
-				ipv4.NewProtocol,
-				arp.NewProtocol},
-			TransportProtocols: []stack.TransportProtocolFactory{
-				tcp.NewProtocol,
-				icmp.NewProtocol4,
-				udp.NewProtocol},
-		})
+func (iface *Interface) configure(mac string) (err error) {
+	if iface.Stack == nil {
+		iface.Stack = stack.New(DefaultStackOptions)
 	}
 
 	linkAddr, err := tcpip.ParseMACAddress(mac)
@@ -73,12 +81,11 @@ func (iface *Interface) configure(mac string, s *stack.Stack) (err error) {
 		return
 	}
 
-	iface.Stack = s
 	iface.Link = channel.New(256, MTU, linkAddr)
 
 	linkEP := stack.LinkEndpoint(iface.Link)
 
-	if err := iface.Stack.CreateNIC(iface.nicid, linkEP); err != nil {
+	if err := iface.Stack.CreateNIC(iface.NICID, linkEP); err != nil {
 		return fmt.Errorf("%v", err)
 	}
 
@@ -87,7 +94,7 @@ func (iface *Interface) configure(mac string, s *stack.Stack) (err error) {
 		AddressWithPrefix: iface.addr.WithPrefix(),
 	}
 
-	if err := iface.Stack.AddProtocolAddress(iface.nicid, protocolAddr, stack.AddressProperties{}); err != nil {
+	if err := iface.Stack.AddProtocolAddress(iface.NICID, protocolAddr, stack.AddressProperties{}); err != nil {
 		return fmt.Errorf("%v", err)
 	}
 
@@ -95,7 +102,7 @@ func (iface *Interface) configure(mac string, s *stack.Stack) (err error) {
 
 	rt = append(rt, tcpip.Route{
 		Destination: header.IPv4EmptySubnet,
-		NIC:         iface.nicid,
+		NIC:         iface.NICID,
 	})
 
 	iface.Stack.SetRouteTable(rt)
@@ -114,7 +121,7 @@ func (iface *Interface) EnableICMP() error {
 		return fmt.Errorf("endpoint error (icmp): %v", err)
 	}
 
-	fullAddr := tcpip.FullAddress{Addr: iface.addr, Port: 0, NIC: iface.nicid}
+	fullAddr := tcpip.FullAddress{Addr: iface.addr, Port: 0, NIC: iface.NICID}
 
 	if err := ep.Bind(fullAddr); err != nil {
 		return fmt.Errorf("bind error (icmp endpoint): ", err)
@@ -126,7 +133,7 @@ func (iface *Interface) EnableICMP() error {
 // ListenerTCP4 returns a net.Listener capable of accepting IPv4 TCP
 // connections for the argument port.
 func (iface *Interface) ListenerTCP4(port uint16) (net.Listener, error) {
-	fullAddr := tcpip.FullAddress{Addr: iface.addr, Port: port, NIC: iface.nicid}
+	fullAddr := tcpip.FullAddress{Addr: iface.addr, Port: port, NIC: iface.NICID}
 	listener, err := gonet.ListenTCP(iface.Stack, fullAddr, ipv4.ProtocolNumber)
 
 	if err != nil {
@@ -207,7 +214,7 @@ func fullAddr(a string) (tcpip.FullAddress, error) {
 
 // Add adds an Ethernet over USB configuration to a previously configured USB
 // device, it can be used in place of Init() to create composite USB devices.
-func Add(device *usb.Device, deviceIP string, deviceMAC string, hostMAC string, id int, stack *stack.Stack) (iface *Interface, err error) {
+func (iface *Interface) Add(device *usb.Device, deviceIP string, deviceMAC string, hostMAC string) (err error) {
 	hostAddress, err := net.ParseMAC(hostMAC)
 
 	if err != nil {
@@ -220,33 +227,36 @@ func Add(device *usb.Device, deviceIP string, deviceMAC string, hostMAC string, 
 		return
 	}
 
-	iface = &Interface{
-		nicid: tcpip.NICID(id),
-		addr:  tcpip.AddrFromSlice(net.ParseIP(deviceIP)).To4(),
+	if iface.NICID == 0 {
+		iface.NICID = NICID
 	}
 
-	if err = iface.configure(deviceMAC, stack); err != nil {
+	iface.addr = tcpip.AddrFromSlice(net.ParseIP(deviceIP)).To4()
+
+	if err = iface.configure(deviceMAC); err != nil {
 		return
 	}
 
-	iface.NIC = &NIC{
-		HostMAC:   hostAddress,
-		DeviceMAC: deviceAddress,
-		Link:      iface.Link,
-		Device:    device,
-	}
+	if iface.NIC == nil {
+		iface.NIC = &NIC{
+			HostMAC:   hostAddress,
+			DeviceMAC: deviceAddress,
+			Link:      iface.Link,
+			Device:    device,
+		}
 
-	err = iface.NIC.Init()
+		err = iface.NIC.Init()
+	}
 
 	return
 }
 
-// Init initializes an Ethernet over USB interface (see ConfigureDevice() for
-// its defaults) associating it to a gVisor link, the link is assigned to a new
-// or existing TCP/IP gVisor stack depending on the stack argument.
-func Init(deviceIP string, deviceMAC, hostMAC string, id int, stack *stack.Stack) (iface *Interface, err error) {
+// Init initializes an Ethernte over USB interface (see ConfigureDevice() for
+// its defaults) associating it to a gVisor link, a default NICID and TCP/IP
+// gVisor Stack are set if not previously assigned.
+func (iface *Interface) Init(deviceIP string, deviceMAC, hostMAC string) error {
 	device := &usb.Device{}
 	ConfigureDevice(device, deviceMAC)
 
-	return Add(device, deviceIP, deviceMAC, hostMAC, id, stack)
+	return iface.Add(device, deviceIP, deviceMAC, hostMAC)
 }
