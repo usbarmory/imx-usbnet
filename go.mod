@@ -2,8 +2,6 @@ module github.com/usbarmory/imx-usbnet
 
 go 1.21.1
 
-toolchain go1.22.0
-
 require (
 	github.com/usbarmory/tamago v0.0.0-20230502075139-4ff8fc5a5c87
 	gvisor.dev/gvisor v0.0.0-20240303010120-901d232cd101
