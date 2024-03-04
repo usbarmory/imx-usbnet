@@ -120,7 +120,7 @@ func (eth *NIC) ECMRx(out []byte, lastErr error) (_ []byte, err error) {
 // ECMTx implements the endpoint 1 IN function, used to transmit Ethernet
 // packet from device to host.
 func (eth *NIC) ECMTx(_ []byte, lastErr error) (in []byte, err error) {
-	var pkt stack.PacketBufferPtr
+	var pkt *stack.PacketBuffer
 
 	if pkt = eth.Link.Read(); pkt.IsNil() {
 		return
