@@ -122,7 +122,7 @@ func (eth *NIC) ECMRx(out []byte, lastErr error) (_ []byte, err error) {
 func (eth *NIC) ECMTx(_ []byte, lastErr error) (in []byte, err error) {
 	var pkt *stack.PacketBuffer
 
-	if pkt = eth.Link.Read(); pkt.IsNil() {
+	if pkt = eth.Link.Read(); pkt == nil {
 		return
 	}
 
