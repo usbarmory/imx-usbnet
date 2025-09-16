@@ -16,7 +16,7 @@ stack pure Go implementation.
 The interface TCP/IP stack can be attached to the Go runtime by setting
 `net.SocketFunc` to the interface `Socket` function:
 
-```
+```go
 // i.MX Ethernet over USB interface
 iface := usbnet.Interface{}
 
