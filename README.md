@@ -17,7 +17,13 @@ The interface TCP/IP stack can be attached to the Go runtime by setting
 `net.SocketFunc` to the interface `Socket` function:
 
 ```
-iface, _ := usbnet.Init("10.0.0.1", "1a:55:89:a2:69:41", "1a:55:89:a2:69:42")
+// i.MX Ethernet over USB interface
+iface := usbnet.Interface{}
+
+// initialize with IP, device MAC, host MAC
+_ = usbnet.Init("10.0.0.1", "1a:55:89:a2:69:41", "1a:55:89:a2:69:42")
+
+// Go runtime hook
 net.SocketFunc = iface.Socket
 ```
 
