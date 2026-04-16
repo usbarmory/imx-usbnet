@@ -1,3 +1,8 @@
+> [!WARNING]
+> This package is now obsolete as it is replaced by
+> [go-net](https://github.com/usbarmory/go-net) and
+> [go-net/imx-usb](https://github.com/usbarmory/go-net/tree/main/imx-usb).
+
 i.MX Ethernet over USB driver
 =============================
 
